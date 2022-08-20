@@ -13,6 +13,16 @@ class ArgsTest {
     }
 
     @Test
+    public void testWithNoSchemaButWithOneArgument()throws Exception{
+        try{
+            new Args("",new String[]{"-x"});
+            fail();
+        }catch (Exception e){
+
+        }
+
+    }
+    @Test
     public void testSimpleBooleanPresent() throws Exception{
         Args args = new Args("x", new String[]{"-x"});
         assertEquals(1, args.cardinality());
@@ -27,4 +37,18 @@ class ArgsTest {
         assertEquals("param", args.getString('x'));
     }
 
+    @Test
+    public void testSpacesInFormat() throws Exception{
+        Args args = new Args("x, y", new String[]{"-xy"});
+        assertEquals(2, args.cardinality());
+        assertTrue(args.has('x'));
+        assertTrue(args.has('y'));
+    }
+    @Test
+    public void testSimpleIntPresent() throws Exception{
+        Args args = new Args("x#", new String[]{"-x","42"});
+        assertEquals(1, args.cardinality());
+        assertTrue(args.has('x'));
+        assertEquals(42, args.getInt('x'));
+    }
 }
