@@ -8,7 +8,8 @@ public enum Month {
     , DECEMBER (12);
     public int index;
     private static DateFormatSymbols dateSymbols = new DateFormatSymbols();
-
+    static final int[] LAST_DAY_OF_MONTH =
+            {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
     Month(int index){
         this.index=index;
     }
@@ -37,10 +38,13 @@ public enum Month {
         }throw new IllegalArgumentException("No Month");
     }
 
+
     private boolean matches(String s) {
         return s.equalsIgnoreCase(toShortString()) || s.equalsIgnoreCase(toString());
     }
-
+    public int lastDay() {
+        return LAST_DAY_OF_MONTH[index];
+    }
     @Override
     public String toString() {
         return dateSymbols.getMonths()[index-1];
@@ -48,4 +52,6 @@ public enum Month {
     public String toShortString() {
         return dateSymbols.getShortMonths()[index-1];
     }
+
+
 }
