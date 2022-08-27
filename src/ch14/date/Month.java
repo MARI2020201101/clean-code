@@ -38,6 +38,9 @@ public enum Month {
         }throw new IllegalArgumentException("No Month");
     }
 
+    public int toInt(){
+        return index;
+    }
 
     private boolean matches(String s) {
         return s.equalsIgnoreCase(toShortString()) || s.equalsIgnoreCase(toString());

@@ -13,9 +13,10 @@ public enum WeekInMonth {
     WeekInMonth(int index){
         this.index = index;
     }
-    public static WeekInMonth intToWeekInMonth(int index){
+
+    String toString(int index){
         for(WeekInMonth w : WeekInMonth.values()){
-            if(index == w.index) return w;
+            if(index == w.index) return w.name();
         }
         throw new IllegalArgumentException("No WIM");
     }

@@ -59,128 +59,116 @@
 package ch14.date;
 
 import java.io.Serializable;
+import java.util.Calendar;
+import java.util.Date;
+
+import static ch14.date.DateInterval.CLOSED;
+import static ch14.date.DateUtil.lastDayOfMonth;
 
 
 public abstract class DayDate implements Comparable, Serializable {
-
+    public abstract int getOrdinalDay();
     public abstract int getYear();
     public abstract Month getMonth();
-    public abstract int getOrdinalDay();
+    public abstract int getDayOfMonth();
+
+    protected abstract Day getDayOfWeekForOrdinalZero();
+
     public DayDate plusDays(int days) {
         return DayDateFactory.makeDate(getOrdinalDay() + days);
     }
+
     public DayDate plusMonths(int months) {
         int thisMonthOrdinal = 12 * getYear() + getMonth().index -1 ;
         int resultMonthAsOrdinal = thisMonthOrdinal + months;
         int resultYear = resultMonthAsOrdinal / 12;
         Month resultMonth = Month.make(resultMonthAsOrdinal % 12 + 1);
 
-        int lastDayOfResultMonth = DateUtil.lastDayOfMonth(resultMonth, resultYear);
-        int resultDay = Math.min(getDayOfMonth(), lastDayOfResultMonth);
+        int resultDay = correctLastDayOfMonth(getDayOfMonth(), resultMonth, resultYear);
+        //만약에 day가 31일인데 더한 month의 마지막날이 30일경우 더 적은 쪽을 더해야 한다
         return DayDateFactory.makeDate(resultDay, resultMonth, resultYear);
-
     }
 
-
-    public DayDate addYears(final int years, final DayDate base) {
-
-        final int baseY = base.getYear();
-        final int baseM = base.getMonth();
-        final int baseD = base.getDayOfMonth();
-
-        final int targetY = baseY + years;
-        final int targetD = Math.min(
-            baseD, DateUtil.lastDayOfMonth(baseM, targetY)
-        );
-
-        return DayDateFactory.makeDate(targetD, baseM, targetY);
-
+    public DayDate plusYears(int years) {
+        int resultYear = getYear() + years;
+        int resultDay = correctLastDayOfMonth(getDayOfMonth(), getMonth(), resultYear);
+        return DayDateFactory.makeDate(resultDay, getMonth(), resultYear);
     }
 
+    private int correctLastDayOfMonth(int day, Month month, int year){
+        int lastDayOfMonth = DateUtil.lastDayOfMonth(month, year);
+        if(day > lastDayOfMonth) day = lastDayOfMonth;
+        return day;
+    }
 
-    public static DayDate getPreviousDayOfWeek(final int targetWeekday,
-                                               final DayDate base) {
-        // find the date...
-        final int adjust;
-        final int baseDOW = base.getDayOfWeek();
-        if (baseDOW > targetWeekday) {
-            adjust = Math.min(0, targetWeekday - baseDOW);
+    public DayDate getPreviousDayOfWeek(Day targetDayOfWeek) {
+        int offsetToTarget = targetDayOfWeek.index - getDayOfWeek().index;
+        if(offsetToTarget >= 0){
+            offsetToTarget -= 7;
         }
-        else {
-            adjust = -7 + Math.max(0, targetWeekday - baseDOW);
+        return plusDays(offsetToTarget);
+    }
+
+    public DayDate getFollowingDayOfWeek(Day targetDayOfWeek) {
+        int offsetToTarget = targetDayOfWeek.index - getDayOfWeek().index;
+        if(offsetToTarget <= 0){
+            offsetToTarget += 7;
         }
-
-        return DayDate.plusDays(adjust, base);
-
+        return plusDays(offsetToTarget);
     }
 
-    public static DayDate getFollowingDayOfWeek(final int targetWeekday,
-                                                final DayDate base) {
-        // find the date...
-        final int adjust;
-        final int baseDOW = base.getDayOfWeek();
-        if (baseDOW > targetWeekday) {
-            adjust = 7 + Math.min(0, targetWeekday - baseDOW);
-        }
-        else {
-            adjust = Math.max(0, targetWeekday - baseDOW);
-        }
-
-        return DayDate.plusDays(adjust, base);
+    public DayDate getNearestDayOfWeek(Day targetDay) {
+        int offsetToThisWeeksTarget = targetDay.index - getDayOfWeek().index;
+        int offsetToFutureTarget = (offsetToThisWeeksTarget + 6) % 7;
+        int offsetToPreviousTarget = offsetToFutureTarget - 7;
+        if(offsetToFutureTarget > 3)
+            return plusDays(offsetToPreviousTarget);
+        return plusDays(offsetToFutureTarget);
     }
 
-
-    public static DayDate getNearestDayOfWeek(final int targetDOW,
-                                              final DayDate base) {
-        // find the date...
-        final int baseDOW = base.getDayOfWeek();
-        int adjust = -Math.abs(targetDOW - baseDOW);
-        if (adjust >= 4) {
-            adjust = 7 - adjust;
-        }
-        if (adjust <= -4) {
-            adjust = 7 + adjust;
-        }
-        return DayDate.plusDays(adjust, base);
-
+    public DayDate getEndOfMonth() {
+       Month month = getMonth();
+       int year = getYear();
+       int lastDay = lastDayOfMonth(month,year);
+       return DayDateFactory.makeDate(lastDay, month, year);
     }
 
-    public DayDate getEndOfCurrentMonth(final DayDate base) {
-        final int last = DateUtil.lastDayOfMonth(
-            base.getMonth(), base.getYear()
-        );
-        return DayDateFactory.makeDate(last, base.getMonth(), base.getYear());
+    public Date toDate() {
+        final Calendar calendar = Calendar.getInstance();
+        calendar.set(getYear(), getMonth().toInt() - Month.JANUARY.toInt(),
+                getDayOfMonth(), 0, 0, 0);
+        return calendar.getTime();
     }
-
-
-    public static String weekInMonthToString(final int count) {
-        return WeekInMonth.intToWeekInMonth(count).name();
+    public Day getDayOfWeek(){//요일을 구하는 메서드
+        Day startingDay = getDayOfWeekForOrdinalZero(); //일요일이 0일수도 7일수도 있다
+        int startingOffset = startingDay.index - Day.SUNDAY.index;
+        return Day.fromInt((getOrdinalDay() + startingOffset) % 7 + 1);
     }
-
-
-    public abstract int toSerial();
-    public abstract java.util.Date toDate();
-
-    public abstract int getDayOfMonth();
-    public abstract int getDayOfWeek();
-    public abstract int compare(DayDate other);
-    public abstract boolean isOn(DayDate other);
-    public abstract boolean isBefore(DayDate other);
-    public abstract boolean isOnOrBefore(DayDate other);
-    public abstract boolean isAfter(DayDate other);
-    public abstract boolean isOnOrAfter(DayDate other);
-    public abstract boolean isInRange(DayDate d1, DayDate d2);
-    public abstract boolean isInRange(DayDate d1, DayDate d2,
-                                      int include);
-    public DayDate getPreviousDayOfWeek(final int targetDOW) {
-        return getPreviousDayOfWeek(targetDOW, this);
+    public int daysSince(DayDate other) {
+        return getOrdinalDay() - other.getOrdinalDay();
     }
-
-    public DayDate getFollowingDayOfWeek(final int targetDOW) {
-        return getFollowingDayOfWeek(targetDOW, this);
+    public boolean isOn(DayDate other){
+        return getOrdinalDay() == other.getOrdinalDay();
     }
-    public DayDate getNearestDayOfWeek(final int targetDOW) {
-        return getNearestDayOfWeek(targetDOW, this);
+    public boolean isBefore(DayDate other){
+        return getOrdinalDay() < other.getOrdinalDay();
+    }
+    public boolean isOnOrBefore(DayDate other){
+        return getOrdinalDay() <= other.getOrdinalDay();
+    }
+    public boolean isAfter(DayDate other){
+        return getOrdinalDay() > other.getOrdinalDay();
+    }
+    public boolean isOnOrAfter(DayDate other){
+        return getOrdinalDay() >= other.getOrdinalDay();
+    }
+    public boolean isInRange(DayDate d1, DayDate d2){
+        return isInRange(d1, d2, CLOSED);
+    }
+    public boolean isInRange(DayDate d1, DayDate d2, DateInterval interval){
+        int left = Math.min(d1.getOrdinalDay(), d2.getOrdinalDay());
+        int right = Math.max(d1.getOrdinalDay(), d2.getOrdinalDay());
+        return interval.isIn(getOrdinalDay(), left, right);
     }
 
 }

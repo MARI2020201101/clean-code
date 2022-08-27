@@ -156,7 +156,7 @@ public class DayOfWeekInMonthRule extends AnnualDateRule {
         else {
             // start at the end of the month and work backwards...
             result = DayDate.createInstance(1, this.month, year);
-            result = result.getEndOfCurrentMonth(result);
+            result = result.getEndOfMonth(result);
             while (result.getDayOfWeek() != this.dayOfWeek) {
                 result = DayDate.plusDays(-1, result);
             }
