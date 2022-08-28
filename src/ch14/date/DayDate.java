@@ -66,7 +66,7 @@ import static ch14.date.DateInterval.CLOSED;
 import static ch14.date.DateUtil.lastDayOfMonth;
 
 
-public abstract class DayDate implements Comparable, Serializable {
+public abstract class DayDate implements Serializable {
     public abstract int getOrdinalDay();
     public abstract int getYear();
     public abstract Month getMonth();

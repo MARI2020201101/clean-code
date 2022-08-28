@@ -55,8 +55,6 @@
 
 package ch14.date;
 
-import java.util.Date;
-
 public class SpreadsheetDate extends DayDate {
     public static final int EARLIEST_DATE_ORDINAL = 2;
     public static final int LATEST_DATE_ORDINAL = 2958465;
@@ -95,34 +93,6 @@ public class SpreadsheetDate extends DayDate {
         calcDayMonthYear();
     }
 
-    private void calcDayMonthYear() {
-        int days = ordinalDay - EARLIEST_DATE_ORDINAL;
-        int overEstimatedYear = MINIMUM_YEAR_SUPPORTED + days / 365; //윤년을 고려하지 않고 그냥 센 year. 초과될수있다
-        int nonLeapDays = days - DateUtil.leapYearCount(overEstimatedYear);
-        int underEstimatedYear = MINIMUM_YEAR_SUPPORTED + nonLeapDays / 365 ; //윤년을 고려해서 최소로 센 year.
-        year = huntForYearContaining(ordinalDay, underEstimatedYear);
-        int firstOrdinalOfYear =
-    }
-
-    /**
-     * Returns the serial number for the date, where 1 January 1900 = 2
-     * (this corresponds, almost, to the numbering system used in Microsoft
-     * Excel for Windows and Lotus 1-2-3).
-     *
-     * @return The serial number of this date.
-     */
-    public int toSerial() {
-        return this.ordinalDay;
-    }
-
-    public static int leapYearCount(final int yyyy) {
-
-        final int leap4 = (yyyy - 1896) / 4;
-        final int leap100 = (yyyy - 1800) / 100;
-        final int leap400 = (yyyy - 1600) / 400;
-        return leap4 - leap100 + leap400;
-
-    }
     public int getYear() {
         return this.year;
     }
@@ -132,89 +102,47 @@ public class SpreadsheetDate extends DayDate {
     public int getDayOfMonth() {
         return this.day;
     }
-
-
-    public int getDayOfWeek() {
-        return (this.ordinalDay + 6) % 7 + 1;
+    @Override
+    public int getOrdinalDay() {
+        return this.ordinalDay;
+    }
+    @Override
+    protected Day getDayOfWeekForOrdinalZero() {
+        return Day.SATURDAY;
     }
 
-
-    public boolean equals(final Object object) {
-
-        if (object instanceof DayDate) {
-            final DayDate s = (DayDate) object;
-            return (s.toSerial() == this.toSerial());
-        }
-        else {
-            return false;
-        }
-
+    private void calcDayMonthYear() {
+        int days = ordinalDay - EARLIEST_DATE_ORDINAL;
+        int overEstimatedYear = MINIMUM_YEAR_SUPPORTED + days / 365; //윤년을 고려하지 않고 그냥 센 year. 초과될수있다
+        int nonLeapDays = days - DateUtil.leapYearCount(overEstimatedYear);
+        int underEstimatedYear = MINIMUM_YEAR_SUPPORTED + nonLeapDays / 365 ; //윤년을 고려해서 최소로 센 year.
+        year = huntForYearContaining(ordinalDay, underEstimatedYear); //윤년을 고려한 year 를 조정한다.
+        int firstOrdinalOfYear = firstOrdinalOfYear(year);
+        month = huntForMonthContaining(ordinalDay, firstOrdinalOfYear);
     }
 
-
-    public int hashCode() {
-        return toSerial();
+    private Month huntForMonthContaining(int anOrdinal, int firstOrdinalOfYear) {
+        int daysIntoThisYear = anOrdinal - firstOrdinalOfYear;
+        int aMonth = 1;
+        while(daysBeforeThisMonth(month) < daysIntoThisYear) aMonth++;
+        return Month.make(aMonth -1);
     }
 
-
-
-
-
-    public int compareTo(final Object other) {
-        return daysSince((DayDate) other);
-    }
-    
-
-    public boolean isOn(final DayDate other) {
-        return (this.ordinalDay == other.toSerial());
+    private int daysBeforeThisMonth(Month aMonth) {
+        if(DateUtil.isLeapYear(year))
+            return LEAP_YEAR_AGGREGATE_DAYS_TO_END_OF_PRECEDING_MONTH[aMonth.toInt()] -1;
+        else
+            return AGGREGATE_DAYS_TO_END_OF_PRECEDING_MONTH[aMonth.toInt()] -1 ;
     }
 
-
-    public boolean isBefore(final DayDate other) {
-        return (this.ordinalDay < other.toSerial());
+    private int huntForYearContaining(int anOrdinalDay, int startingYear) {
+        int aYear = startingYear;
+        while(firstOrdinalOfYear(aYear) <= anOrdinalDay) aYear++;
+        return aYear-1;
     }
 
-
-    public boolean isOnOrBefore(final DayDate other) {
-        return (this.ordinalDay <= other.toSerial());
-    }
-
-
-    public boolean isAfter(final DayDate other) {
-        return (this.ordinalDay > other.toSerial());
-    }
-
-
-    public boolean isOnOrAfter(final DayDate other) {
-        return (this.ordinalDay >= other.toSerial());
-    }
-
-
-    public boolean isInRange(final DayDate d1, final DayDate d2) {
-        return isInRange(d1, d2, DayDate.INCLUDE_BOTH);
-    }
-
-
-    public boolean isInRange(final DayDate d1, final DayDate d2,
-                             final int include) {
-        final int s1 = d1.toSerial();
-        final int s2 = d2.toSerial();
-        final int start = Math.min(s1, s2);
-        final int end = Math.max(s1, s2);
-        
-        final int s = toSerial();
-        if (include == DayDate.INCLUDE_BOTH) {
-            return (s >= start && s <= end);
-        }
-        else if (include == DayDate.INCLUDE_FIRST) {
-            return (s >= start && s < end);            
-        }
-        else if (include == DayDate.INCLUDE_SECOND) {
-            return (s > start && s <= end);            
-        }
-        else {
-            return (s > start && s < end);            
-        }    
+    private int firstOrdinalOfYear(int year) {
+        return calcOrdinal(1, Month.JANUARY, year);
     }
 
 
